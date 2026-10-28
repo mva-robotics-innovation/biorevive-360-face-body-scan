@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Scan - BIO-REVIVE 360° Deep Scan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Manrope:wght@700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--green:#2cf6b3;--green2:#0f9d4e;--blue:#5b7cff;--text:#e2e8f0;--muted:#94a3b8;--border:rgba(255,255,255,.09);--bg:#070A14}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(1000px 600px at 20% 10%,rgba(44,246,179,.12),transparent),linear-gradient(180deg,#070A14,#0A122A)}
+.container{max-width:1100px;margin:0 auto;padding:0 4.5%}
+.mono{font-family:'JetBrains Mono',monospace}
+nav{position:sticky;top:0;z-index:90;background:rgba(7,10,20,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:12px 4.5%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.btn{padding:10px 18px;border-radius:999px;font-weight:700;font-size:.84rem;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;display:inline-flex;gap:6px;align-items:center;text-decoration:none}
+.btn:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-dark{background:#fff;color:#070A14}.btn-green{background:linear-gradient(135deg,var(--green2),#059669);color:#fff;border:none}
+.grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:16px}
+.card{background:rgba(255,255,255,.05);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:18px;padding:16px}
+.video-wrap{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:4/3}
+.video-wrap video,.video-wrap canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.video-wrap canvas{pointer-events:none}
+.status{position:absolute;top:8px;left:8px;z-index:3;background:rgba(0,0,0,.7);color:var(--green);padding:5px 10px;border-radius:999px;font-size:.7rem}
+.bar{position:absolute;left:0;bottom:0;height:4px;background:var(--green);width:0;z-index:3;transition:width .3s}
+.stat{background:rgba(255,255,255,.04);border:1px solid var(--border);padding:12px;border-radius:12px;text-align:center}
+.stat small{display:block;font-size:.7rem;color:var(--muted)}.stat b{font-size:1.8rem;font-weight:800;color:#fff}
+.row{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;font-size:.76rem;margin-top:7px}
+.track{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--blue));transition:width .8s}
+.log{background:#0f172a;border-radius:12px;padding:12px;font-size:.74rem;line-height:1.7;border:1px solid var(--border);color:#cbd5e1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.chip{padding:4px 10px;border-radius:99px;background:rgba(44,246,179,.1);border:1px solid rgba(44,246,179,.3);color:var(--green);font-size:.74rem;font-weight:600}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.track i,.bar{transition:none}}
+</style>
+</head>
+<body>
+<nav>
+<div style="font-weight:800;color:#fff">BIO-REVIVE 360° • Deep Face + Body Scan</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+<a href="index.html" class="btn btn-dark">← Home</a><a href="#faceSection" class="btn">Face scan</a><a href="#bodySection" class="btn">Whole-body scan</a><a href="hardware.html" class="btn">Hardware →</a><a href="trinity.html" class="btn">AI Trinity →</a>
+</div>
+</nav>
+<div class="container" style="padding:28px 0">
+<h1 style="font-family:Manrope;font-size:clamp(1.6rem,2.8vw,2.2rem);color:#fff">Deep face scan: live mesh, appearance-age estimate and skin-region heatmap</h1>
+<p style="color:var(--muted);margin-top:6px;max-width:70ch">MediaPipe tracks 478 face points in your browser as you move. OpenCV and NumPy provide an experimental skin-region heatmap and visible texture metrics. Webcam imagery cannot determine true biological age, internal-organ age, or gender identity; appearance estimates are affected by lighting, camera quality and other factors.</p>
+<section id="faceSection"><div class="grid2">
+<div>
+<div class="video-wrap">
+<video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas>
+<div class="status mono" id="status">CAMERA OFF</div><div class="bar" id="bar"></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button class="btn btn-green" id="startBtn">📷 Start camera</button>
+<button class="btn" id="stopBtn">Stop</button>
+<button class="btn btn-green" id="scanBtn" disabled>🧬 Run deep scan</button>
+</div>
+<p class="mono" style="font-size:.72rem;color:var(--muted);margin-top:8px">Backend: <span id="backendStatus" style="color:var(--green)">checking…</span></p>
+</div>
+<div class="card">
+<h3 style="color:#fff">Analysis</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+<div class="stat"><small>Estimated age</small><b id="age">--</b><small id="range" class="mono"></small></div>
+<div class="stat" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.18)"><small style="color:#fca5a5">Skin aging index</small><b id="bio" style="color:#fca5a5">--</b><small>visual proxy only</small></div>
+</div>
+<div class="chips" id="chips"></div>
+<div id="bars" style="margin-top:8px"></div><div style="margin-top:14px"><h3 style="color:#fff">Per-region skin heatmap</h3><p style="font-size:.75rem;color:var(--muted);margin:5px 0 8px">Illustrative image-processing overlay for visible texture / colour variation, not a dermatology diagnosis.</p><img id="heatmap" alt="Skin-region analysis heatmap will appear after a scan" style="display:none;width:100%;max-height:360px;object-fit:contain;background:#050814;border:1px solid var(--border);border-radius:12px"><div id="heatmapEmpty" class="log">Heatmap appears after a successful scan.</div></div>
+<div class="log mono" id="log" style="margin-top:12px">> Start the camera, hold your face in the frame, then run the deep scan.</div>
+<a href="trinity.html" class="btn btn-green" style="margin-top:12px;width:100%;justify-content:center">Next: AI Trinity →</a>
+</div>
+</div></section>
+<section id="bodySection" class="card" style="margin-top:22px"><h2 style="font-size:1.35rem;color:#fff">Whole-body pose scan</h2><p style="color:var(--muted);margin:6px 0 14px">Tracks visible body landmarks while you move. It reports posture and landmark visibility only. A normal webcam cannot scan internal organs or calculate organ age, bone density, body composition, or medical biological age.</p><div class="grid2" style="margin-top:0"><div><div class="video-wrap" id="bodyWrap"><video id="bodyVideo" autoplay muted playsinline></video><canvas id="bodyOverlay"></canvas><div class="status mono" id="bodyStatus">BODY CAMERA OFF</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-green" id="bodyStart">📷 Start whole-body camera</button><button class="btn" id="bodyStop">Stop</button><button class="btn" id="bodyCapture" disabled>Capture posture snapshot</button></div></div><div class="card"><h3 style="color:#fff">Body landmark report</h3><div id="bodyReport" class="log">Stand far enough away for head, shoulders, hips, knees and ankles to be visible. Use a clear, well-lit background.</div><img id="bodySnapshot" alt="Captured whole-body pose snapshot" style="display:none;width:100%;margin-top:12px;border-radius:12px;border:1px solid var(--border)"></div></div></section>
+</div>
+<script type="module">
+import {FaceLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
+const BACKEND_URL=location.protocol==="file:"?"http://localhost:5000":(["localhost","127.0.0.1"].includes(location.hostname)?location.origin:"https://biorevive-backend-wdly.onrender.com");
+const $=id=>document.getElementById(id);
+const video=$('video'),cv=$('overlay'),ctx=cv.getContext('2d');
+const OVAL=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+let stream=null,lm=null,ready=false,scanning=false,progress=0,last=-1,face=null;
+const log=t=>$('log').innerHTML='> '+t;
+
+async function checkBackend(){
+  try{const d=await (await fetch(BACKEND_URL+'/')).json();
+    $('backendStatus').textContent='● online'+(d.dnn_models?' (models: '+Object.keys(d.models||{}).filter(k=>d.models[k]).join(', ')+')':' (limited appearance estimate; model files may be missing)');
+  }catch(e){$('backendStatus').textContent='○ sleeping: wait 30 s and refresh';$('backendStatus').style.color='#f59e0b';}
+}
+async function initModel(){
+  const fs=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  const opts=d=>({baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",delegate:d},runningMode:"VIDEO",numFaces:1});
+  try{lm=await FaceLandmarker.createFromOptions(fs,opts("GPU"));}catch(e){lm=await FaceLandmarker.createFromOptions(fs,opts("CPU"));}
+}
+async function start(){
+  try{
+    $('status').textContent='LOADING AI MODEL…';
+    if(!lm) await initModel();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});
+    video.srcObject=stream;await video.play();
+    $('scanBtn').disabled=false;loop();
+  }catch(e){$('status').textContent='CAMERA ERROR: '+e.name;alert('Camera error: '+e.message+'\n\n1. Use HTTPS\n2. Allow camera permission\n3. On phone use Chrome/Safari');}
+}
+function stop(){
+  stream&&stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;ready=false;face=null;
+  $('scanBtn').disabled=true;$('status').textContent='CAMERA OFF';ctx.clearRect(0,0,cv.width,cv.height);
+}
+function loop(){
+  if(!stream)return;
+  if(video.videoWidth&&video.currentTime!==last){
+    last=video.currentTime;
+    if(cv.width!==video.videoWidth){cv.width=video.videoWidth;cv.height=video.videoHeight;}
+    const r=lm.detectForVideo(video,performance.now());
+    face=r.faceLandmarks[0]||null;draw();
+  }
+  requestAnimationFrame(loop);
+}
+function draw(){
+  const W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);
+  if(!face){ready=false;if(!scanning)$('status').textContent='NO FACE: look at the camera';return;}
+  const P=face.map(p=>[p.x*W,p.y*H]);
+  // green cover that follows the face
+  ctx.beginPath();OVAL.forEach((i,k)=>k?ctx.lineTo(...P[i]):ctx.moveTo(...P[i]));ctx.closePath();
+  ctx.fillStyle='rgba(44,246,179,.13)';ctx.fill();ctx.strokeStyle='rgba(44,246,179,.95)';ctx.lineWidth=2;ctx.stroke();
+  // dotted connections
+  ctx.setLineDash([2,4]);ctx.lineWidth=.8;ctx.strokeStyle='rgba(44,246,179,.45)';ctx.beginPath();
+  FaceLandmarker.FACE_LANDMARKS_TESSELATION.forEach(c=>{ctx.moveTo(...P[c.start]);ctx.lineTo(...P[c.end]);});ctx.stroke();ctx.setLineDash([]);
+  ctx.lineWidth=1.4;ctx.strokeStyle='rgba(125,211,252,.9)';ctx.beginPath();
+  FaceLandmarker.FACE_LANDMARKS_CONTOURS.forEach(c=>{ctx.moveTo(...P[c.start]);ctx.lineTo(...P[c.end]);});ctx.stroke();
+  ctx.fillStyle='#2cf6b3';const s=Math.max(1.5,W/500);
+  P.forEach(p=>ctx.fillRect(p[0]-s/2,p[1]-s/2,s,s));
+  // pose + distance guidance
+  const fw=Math.abs(P[454][0]-P[234][0]),yaw=(P[1][0]-(P[234][0]+P[454][0])/2)/fw;
+  const ys=P.map(p=>p[1]),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const big=fw/W>.28,straight=Math.abs(yaw)<.12;ready=big&&straight;
+  if(scanning){ // sweeping scan line
+    const y=minY+((performance.now()/1400)%1)*(maxY-minY);
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.shadowColor='#2cf6b3';ctx.shadowBlur=14;
+    ctx.beginPath();ctx.moveTo(P[234][0]-20,y);ctx.lineTo(P[454][0]+20,y);ctx.stroke();ctx.shadowBlur=0;
+    $('status').textContent=ready?`SCANNING ${Math.round(progress*100)}%`:'HOLD STILL, FACE FORWARD';
+  }else $('status').textContent=!big?'MOVE CLOSER':!straight?'LOOK STRAIGHT':'FACE LOCKED · READY';
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function grab(){
+  const sc=Math.min(1,960/video.videoWidth),c=document.createElement('canvas');
+  c.width=video.videoWidth*sc;c.height=video.videoHeight*sc;c.getContext('2d').drawImage(video,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',.88);
+}
+async function deepScan(){
+  if(!stream||scanning)return;
+  scanning=true;progress=0;$('scanBtn').disabled=true;const frames=[],N=8,t0=performance.now();
+  log('Collecting frames. Keep your face centred in good light…');
+  while(frames.length<N&&performance.now()-t0<20000){
+    await sleep(450);if(!ready)continue;
+    frames.push(grab());progress=frames.length/N;$('bar').style.width=progress*70+'%';
+  }
+  if(frames.length<3){scanning=false;$('scanBtn').disabled=false;$('bar').style.width='0';log('Scan cancelled: face not stable. Try again facing the light.');return;}
+  $('status').textContent='ANALYSING WITH PYTHON…';$('bar').style.width='90%';log('Running OpenCV + MediaPipe analysis on '+frames.length+' frames…');
+  try{
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),60000);
+    const res=await fetch(BACKEND_URL+'/api/face-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:frames}),signal:ac.signal});
+    clearTimeout(to);const d=await res.json();
+    if(!res.ok)throw new Error(d.detail||'Scan failed');
+    show(d);
+    try{localStorage.setItem('face_chrono',d.chrono_age);localStorage.setItem('face_analysis',JSON.stringify(d));}catch(e){}
+  }catch(e){log('Error: '+(e.name==='AbortError'?'backend timed out (it may be waking up). Retry in 30 s.':e.message));}
+  scanning=false;$('scanBtn').disabled=false;$('bar').style.width='100%';setTimeout(()=>$('bar').style.width='0',800);
+}
+function show(d){
+  $('age').textContent=d.chrono_age;$('range').textContent='appearance estimate range '+d.age_range[0]+'-'+d.age_range[1]+' · model confidence '+d.age_conf+'%';$('bio').textContent=Math.round(d.scores.aging_index)+'/100';
+  $('chips').innerHTML=[d.age_group,d.frames_used+'/'+d.frames_sent+' frames','Skin appearance score '+Math.round(d.scores.skin_health)+'/100',d.expression?'Expression: '+d.expression:''].filter(Boolean).map(t=>`<span class="chip">${t}</span>`).join('');
+  const L={wrinkles:'Wrinkles',texture:'Skin texture',dark_circles:'Dark circles',pigmentation:'Pigmentation',redness:'Redness',symmetry:'Symmetry',spots:'Dark spots',shine:'Shine',aging_index:'Aging index'};
+  $('bars').innerHTML=Object.keys(L).map(k=>`<div class="row"><span>${L[k]}</span><div class="track"><i data-w="${d.scores[k]??0}"></i></div><span class="mono">${Math.round(d.scores[k]??0)}</span></div>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.track i').forEach(i=>i.style.width=i.dataset.w+'%'));
+  if(d.heatmap){$('heatmap').src='data:image/jpeg;base64,'+d.heatmap;$('heatmap').style.display='block';$('heatmapEmpty').style.display='none';} log(d.tips.join('<br>> ')+'<br><span style="color:#94a3b8">Engine: '+d.engine+'. '+d.disclaimer+'</span>');
+  $('status').textContent=`DONE · appearance-age estimate ${d.chrono_age}`;
+}
+$('startBtn').onclick=start;$('stopBtn').onclick=stop;$('scanBtn').onclick=deepScan;checkBackend();
+</script>
+
+<script type="module">
+import {PoseLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
+const $b=id=>document.getElementById(id);let bodyStream=null,poseModel=null,poseLoop=false,lastBodyTime=-1,lastPose=null;
+const bv=$b('bodyVideo'),bc=$b('bodyOverlay'),bx=bc.getContext('2d');
+const links=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,29],[27,31],[28,30],[28,32],[29,31],[30,32]];
+async function startBody(){try{$b('bodyStatus').textContent='LOADING POSE MODEL';if(!poseModel){const fs=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');poseModel=await PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'/models/pose_landmarker_full.task',delegate:'GPU'},runningMode:'VIDEO',numPoses:1});}bodyStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});bv.srcObject=bodyStream;await bv.play();poseLoop=true;$b('bodyCapture').disabled=false;bodyTick();}catch(e){$b('bodyStatus').textContent='CAMERA ERROR';$b('bodyReport').textContent='Could not start pose tracking: '+e.message+'. Allow camera permission and use HTTPS or localhost.';}}
+function stopBody(){poseLoop=false;if(bodyStream)bodyStream.getTracks().forEach(t=>t.stop());bodyStream=null;bv.srcObject=null;bx.clearRect(0,0,bc.width,bc.height);$b('bodyCapture').disabled=true;$b('bodyStatus').textContent='BODY CAMERA OFF';}
+function bodyTick(){if(!poseLoop)return;if(bv.videoWidth&&bv.currentTime!==lastBodyTime){lastBodyTime=bv.currentTime;if(bc.width!==bv.videoWidth){bc.width=bv.videoWidth;bc.height=bv.videoHeight;}const out=poseModel.detectForVideo(bv,performance.now());lastPose=out.landmarks?.[0]||null;drawBody();}requestAnimationFrame(bodyTick);}
+function drawBody(){const W=bc.width,H=bc.height;bx.clearRect(0,0,W,H);if(!lastPose){$b('bodyStatus').textContent='FULL BODY NOT VISIBLE';$b('bodyReport').textContent='Move back until your head, shoulders, hips, knees and ankles are in frame.';return;}const P=lastPose.map(p=>[p.x*W,p.y*H,p.visibility??0]);bx.lineWidth=Math.max(2,W/450);bx.strokeStyle='#2cf6b3';bx.fillStyle='rgba(44,246,179,.15)';for(const [a,c] of links){if(P[a][2]>.35&&P[c][2]>.35){bx.beginPath();bx.moveTo(P[a][0],P[a][1]);bx.lineTo(P[c][0],P[c][1]);bx.stroke();}}P.forEach(p=>{if(p[2]>.35){bx.beginPath();bx.arc(p[0],p[1],Math.max(3,W/240),0,Math.PI*2);bx.fill();}});const vis=P.filter(p=>p[2]>.5).length;const shoulderTilt=Math.abs(Math.atan2(P[12][1]-P[11][1],P[12][0]-P[11][0])*180/Math.PI);const hipTilt=Math.abs(Math.atan2(P[24][1]-P[23][1],P[24][0]-P[23][0])*180/Math.PI);const coverage=Math.round(vis/P.length*100);$b('bodyStatus').textContent=coverage>75?'POSE LOCKED · TRACKING':'PARTIAL POSE · MOVE INTO FRAME';$b('bodyReport').innerHTML=`<b>Visible landmark coverage:</b> ${coverage}%<br><b>Shoulder-line angle:</b> ${isFinite(shoulderTilt)?shoulderTilt.toFixed(1)+'°':'Unavailable'}<br><b>Hip-line angle:</b> ${isFinite(hipTilt)?hipTilt.toFixed(1)+'°':'Unavailable'}<br><b>Pose points:</b> ${vis}/33<br><br><span style="color:#fbbf24">These are camera-view geometry estimates, not a clinical posture assessment or measurement of internal organs, age, gender, body fat, or disease.</span>`;}
+function captureBody(){if(!bodyStream||!lastPose)return;const c=document.createElement('canvas');c.width=bc.width;c.height=bc.height;const x=c.getContext('2d');x.drawImage(bv,0,0);x.drawImage(bc,0,0);const img=$b('bodySnapshot');img.src=c.toDataURL('image/jpeg',.9);img.style.display='block';$b('bodyReport').innerHTML+='<br><b>Snapshot captured locally in this browser.</b> It is not uploaded by this page.';}
+$b('bodyStart').addEventListener('click',startBody);$b('bodyStop').addEventListener('click',stopBody);$b('bodyCapture').addEventListener('click',captureBody);
+</script>
+
+</body>
+</html>

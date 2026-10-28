@@ -1,0 +1,15 @@
+
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+models/
+**/models/
+*.task
+*.onnx
+*.caffemodel
+*.prototxt
+.env
+.env.*
+!.env.example
+*.log
