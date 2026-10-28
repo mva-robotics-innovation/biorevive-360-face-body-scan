@@ -72,7 +72,10 @@ nav{position:sticky;top:0;z-index:90;background:rgba(7,10,20,.85);backdrop-filte
 </div>
 <script type="module">
 import {FaceLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
-const BACKEND_URL=location.protocol==="file:"?"http://localhost:5000":(["localhost","127.0.0.1"].includes(location.hostname)?location.origin:"https://biorevive-backend-wdly.onrender.com");
+const BACKEND_URL =
+  location.protocol === "file:"
+    ? "http://localhost:5000"
+    : location.origin;
 const $=id=>document.getElementById(id);
 const video=$('video'),cv=$('overlay'),ctx=cv.getContext('2d');
 const OVAL=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
